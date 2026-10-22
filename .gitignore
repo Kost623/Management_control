@@ -1,0 +1,39 @@
+# --- .NET ---
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nupkg
+
+# --- Java ---
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+target/
+
+# --- IDE ---
+.vs/
+.vscode/
+.idea/
+*.iml
+*.swp
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Secrets / env ---
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
