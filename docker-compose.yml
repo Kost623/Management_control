@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  db:
+    image: mariadb:11
+    container_name: mc_mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: management_control
+      MARIADB_USER: mc_user
+      MARIADB_PASSWORD: mc_secret_pass
+      MARIADB_ROOT_PASSWORD: mc_root_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mc_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: mc_server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MC_DB_URL: jdbc:mariadb://db:3306/management_control?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC
+      MC_DB_USER: mc_user
+      MC_DB_PASSWORD: mc_secret_pass
+      MC_JWT_SECRET: change-me-in-production-change-me-in-production
+      MC_ADMIN_USERNAME: admin
+      MC_ADMIN_PASSWORD: admin123
+      MC_SCREENSHOTS_PATH: /data/screenshots
+    ports:
+      - "8080:8080"
+    volumes:
+      - mc_screenshots:/data/screenshots
+
+volumes:
+  mc_db_data:
+  mc_screenshots:

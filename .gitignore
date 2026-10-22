@@ -11,11 +11,26 @@ project.fragment.lock.json
 artifacts/
 *.nupkg
 
-# --- Java ---
+# --- Java / Maven ---
 *.class
 *.jar
 !.mvn/wrapper/maven-wrapper.jar
 target/
+.mvn/wrapper/maven-wrapper.properties.bak
+
+# --- C++ / CMake ---
+build/
+cmake-build-*/
+*.o
+*.obj
+*.exe
+*.pdb
+*.ilk
+vcxproj.user
+
+# --- Runtime data (скриншоти тощо) ---
+data/
+*.log
 
 # --- IDE ---
 .vs/
