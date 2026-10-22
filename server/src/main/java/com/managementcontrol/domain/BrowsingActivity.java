@@ -30,7 +30,7 @@ public class BrowsingActivity {
     @Column(name = "url", length = 2048)
     private String url;
 
-    @Column(name = "domain", nullable = false, length = 255)
+    @Column(name = "domain", length = 255)
     private String domain;
 
     @Column(name = "browser_name", length = 128)

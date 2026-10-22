@@ -15,8 +15,11 @@
 - Надсилання всіх даних на сервер — на пристрої жодних даних не залишається.
 
 ## Структура проєкту
+
+```
 Management_control/
 ├── pom.xml                  # базовий Maven-проєкт (parent, Java 21)
+├── mvnw / mvnw.cmd          # Maven Wrapper
 ├── docker-compose.yml       # MariaDB + сервер
 ├── server/                  # СЕРВЕРНА частина (Java / Spring Boot)
 │   ├── Dockerfile
@@ -32,12 +35,18 @@ Management_control/
 │       └── resources/
 │           ├── application.yml
 │           └── db/migration/V1__init.sql   # схема БД (Flyway)
-└── agent/                   # КЛІЄНТСЬКА частина (C++ / Windows) — у розробці
+├── agent/                   # КЛІЄНТСЬКА частина (C++ / Windows)
+│   ├── CMakeLists.txt
+│   ├── include/mc/          # json, http, config, platform, activity, agent, screenshot
+│   ├── src/                 # реалізація + platform_win.cpp / platform_stub.cpp
+│   └── tests/
+└── scripts/smoke_test.sh    # наскрізна перевірка API
 ```
+
 ## Технології
 
 - Мова програмування (сервер): Java 21, Spring Boot 3.5;
-- Мова програмування (агент): C++ (Windows);
+- Мова програмування (агент): C++20, CMake, Win32 API + GDI+;
 - База даних: MariaDB (міграції Flyway);
 - Автентифікація: device-токен для агента (`mc_dev_…`), JWT для адміністратора.
 
@@ -45,6 +54,9 @@ Management_control/
 
 Сервер: `spring-boot-starter-web`, `-data-jpa`, `-security`, `-validation`, `-actuator`,
 `flyway-core` + `flyway-mysql`, `mariadb-java-client`, `jjwt`, `springdoc-openapi`.
+
+Агент: `libcurl` (Linux — `libcurl4-openssl-dev`, Windows — vcpkg).
+Зовнішніх JSON-бібліотек немає — власний мінімальний парсер.
 
 ## Запуск проєкту
 
@@ -59,8 +71,7 @@ docker compose up -d db
 ### 2. Запустити сервер
 
 ```bash
-cd server
-mvn spring-boot:run
+./mvnw -pl server spring-boot:run
 ```
 
 Змінні оточення (усі необов'язкові, див. `server/src/main/resources/application.yml`):
@@ -74,7 +85,18 @@ mvn spring-boot:run
 | `MC_ADMIN_USERNAME` / `MC_ADMIN_PASSWORD` | `admin` / `admin123` | початковий адміністратор |
 | `MC_SCREENSHOTS_PATH` | `./data/screenshots` | каталог для скриншотів |
 
-### 3. Swagger UI
+### 3. Зібрати агента
+
+```bash
+cd agent
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+Детальніше — у [agent/README.md](agent/README.md).
+
+### 4. Swagger UI
 
 <http://localhost:8080/swagger-ui.html> — повний опис REST API.
 
@@ -107,6 +129,19 @@ mvn spring-boot:run
 | GET | `/reports/daily` \| `/top-apps` \| `/top-sites` | звітність |
 | POST | `/enrollment-codes` | створити код реєстрації |
 | GET | `/audit-logs` | журнал дій адміністраторів |
+
+## Перевірка
+
+```bash
+# наскрізний тест API (потрібен запущений сервер)
+./scripts/smoke_test.sh http://localhost:8080
+
+# тести сервера
+./mvnw test
+
+# тести агента
+ctest --test-dir agent/build --output-on-failure
+```
 
 ## Ліцензія / автор
 

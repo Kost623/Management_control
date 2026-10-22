@@ -47,7 +47,7 @@ CREATE TABLE browsing_activities (
     id               BIGINT      NOT NULL AUTO_INCREMENT,
     device_id        BIGINT      NOT NULL,
     url              VARCHAR(2048) NULL,
-    domain           VARCHAR(255) NOT NULL,
+    domain           VARCHAR(255) NULL,
     browser_name     VARCHAR(128) NULL,
     tab_title        VARCHAR(512) NULL,
     started_at       DATETIME(6) NOT NULL,

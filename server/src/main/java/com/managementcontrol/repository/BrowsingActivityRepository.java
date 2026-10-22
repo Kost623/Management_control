@@ -18,6 +18,7 @@ public interface BrowsingActivityRepository extends JpaRepository<BrowsingActivi
             from BrowsingActivity b
             where b.deviceId = :deviceId
               and b.idle = false
+              and b.domain is not null and b.domain <> ''
               and b.startedAt >= :from and b.startedAt < :to
             group by b.domain
             order by total desc

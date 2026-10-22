@@ -10,7 +10,7 @@ import java.time.Instant;
 /** Один інтервал активного відвідування сайту. */
 public record BrowsingActivityRequest(
         @Size(max = 2048) String url,
-        @NotBlank @Size(max = 255) String domain,
+        @Size(max = 255) String domain,
         @Size(max = 128) String browserName,
         @Size(max = 512) String tabTitle,
         @NotNull Instant startedAt,
