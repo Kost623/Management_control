@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 namespace {
@@ -178,13 +179,34 @@ void testConfig() {
 
 }  // namespace
 
+void testPlatformStubProcesses() {
+#if !defined(MC_PLATFORM_WINDOWS)
+    auto platform = mc::createPlatform();
+    auto processes = platform->runningProcesses();
+
+    check(!processes.empty(), "Платформа: список процесів не порожній на Linux");
+
+    const uint64_t myPid = static_cast<uint64_t>(getpid());
+    bool foundSelf = false;
+    for (const auto& p : processes) {
+        if (p.pid == myPid) {
+            foundSelf = true;
+            break;
+        }
+    }
+    check(foundSelf, "Платформа: власний процес присутній у списку");
+#endif
+}
+
 int main() {
     testJson();
     testUrlExtraction();
     testScreenshotScheduler();
     testActivityTracker();
     testConfig();
+    testPlatformStubProcesses();
 
     std::cout << "Перевірок: " << g_checks << ", помилок: " << g_failures << "\n";
     return g_failures == 0 ? 0 : 1;
 }
+
