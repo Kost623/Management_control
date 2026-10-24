@@ -3,10 +3,13 @@
 
 #include "mc/platform.hpp"
 
+#include <cctype>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <system_error>
 #include <unistd.h>
 
 namespace mc {
@@ -45,7 +48,37 @@ public:
 
     uint64_t idleSeconds() const override { return 0; }
 
-    std::vector<ProcessInfo> runningProcesses() const override { return {}; }
+    std::vector<ProcessInfo> runningProcesses() const override 
+    {
+    std::vector<ProcessInfo> result;
+
+    std::error_code dirEc;
+    for (const auto& entry : std::filesystem::directory_iterator("/proc", dirEc)) {
+        if (!entry.is_directory()) continue;
+
+        const std::string name = entry.path().filename().string();
+        if (name.empty() || !std::isdigit(static_cast<unsigned char>(name[0]))) continue;
+
+        ProcessInfo info;
+        info.pid = std::stoull(name);
+
+        std::ifstream commFile(entry.path() / "comm");
+        if (commFile) {
+            std::getline(commFile, info.name);
+        }
+
+        std::error_code linkEc;
+        auto exe = std::filesystem::read_symlink(entry.path() / "exe", linkEc);
+        if (!linkEc) {
+            info.exePath = exe.string();
+        }
+
+        if (!info.name.empty()) {
+            result.push_back(std::move(info));
+        }
+    }
+    return result;
+    }
 
     bool activeBrowser(BrowserInfo* out) const override {
         (void)out;
