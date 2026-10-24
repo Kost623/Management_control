@@ -1,54 +1,20 @@
-# --- .NET ---
-bin/
-obj/
-[Dd]ebug/
-[Rr]elease/
-*.user
-*.suo
-*.userprefs
-project.lock.json
-project.fragment.lock.json
-artifacts/
-*.nupkg
-
-# --- Java / Maven ---
-*.class
-*.jar
-!.mvn/wrapper/maven-wrapper.jar
+# Maven
 target/
-.mvn/wrapper/maven-wrapper.properties.bak
+!.mvn/wrapper/maven-wrapper.jar
 
-# --- C++ / CMake ---
-build/
-cmake-build-*/
-*.o
-*.obj
-*.exe
-*.pdb
-*.ilk
-vcxproj.user
-
-# --- Runtime data (скриншоти тощо) ---
-data/
-*.log
-
-# --- IDE ---
-.vs/
-.vscode/
+# IDE
 .idea/
 *.iml
-*.swp
-*~
+.vscode/
 
-# --- OS ---
+# C++ / CMake
+agent/build/
+agent/cmake-build-*/
+
+# Логи та дані
+*.log
+data/
+
+# ОС
 .DS_Store
 Thumbs.db
-Desktop.ini
-
-# --- Secrets / env ---
-.env
-.env.*
-!.env.example
-*.pfx
-*.p12
-*.key
