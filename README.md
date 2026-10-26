@@ -153,6 +153,87 @@ ctest --test-dir agent/build --output-on-failure
 
 ## Вимоги до проєкту
 
+## Структура бази даних
+
+База даних MariaDB, схема розгортається через Flyway-міграції
+(`server/src/main/resources/db/migration/`).
+
+### Таблиці
+
+| Таблиця | Призначення | Зв'язок з `devices` |
+|---|---|---|
+| `devices` | Зареєстровані пристрої (ноутбуки менеджерів) | — |
+| `usage_sessions` | Інтервали використання програм | 1:N |
+| `browsing_activities` | Відвідування сайтів | 1:N |
+| `process_events` | Події запуску/завершення процесів | 1:N |
+| `screenshots` | Метадані зроблених скриншотів | 1:N |
+| `location_pings` | Геолокація пристрою | 1:N |
+| `remote_commands` | Команди адміністратора (блокування, скриншот тощо) | 1:N |
+| `enrollment_codes` | Коди реєстрації нових пристроїв | N:1 (через `device_id`) |
+| `admin_users` | Облікові записи адміністраторів | N:1 (через `assigned_manager_id`) |
+| `audit_logs` | Журнал дій адміністраторів | — |
+
+### Первинні та зовнішні ключі
+
+- Усі таблиці мають сурогатний первинний ключ `id BIGINT AUTO_INCREMENT`.
+- `usage_sessions`, `browsing_activities`, `process_events`, `screenshots`,
+  `location_pings`, `remote_commands` посилаються на `devices.id`
+  через `device_id` з `ON DELETE CASCADE` — видалення пристрою видаляє
+  всю пов'язану телеметрію.
+- `enrollment_codes.bound_device_id` та `used_by_device_id` посилаються
+  на `devices.device_id` (бізнес-ключ, `UNIQUE`).
+- `devices.assigned_manager_id` посилається на `admin_users.id`.
+
+### Обмеження
+
+- `NOT NULL` — на всіх обов'язкових полях (ідентифікатори, часові мітки, статуси).
+- `UNIQUE` — `devices.device_id`, `enrollment_codes.code`, `admin_users.username`.
+- `DEFAULT` — булеві прапорці (`tamper_protection`, `active`, `enabled` тощо)
+  та лічильники (`duration_seconds`, `size_bytes`).
+- `CHECK` — значення статусів і типів обмежені відповідними enum-набором
+  (наприклад, `devices.status` лише `ACTIVE`/`LOCKED`/`OFFLINE`/`BLOCKED`),
+  географічні координати обмежені коректним діапазоном,
+  числові лічильники — невід'ємні.
+
+### Перевірка структури
+
+Підняти базу та застосувати міграції:
+
+```bash
+docker compose up -d db
+./mvnw -pl server spring-boot:run
+```
+
+Переглянути застосовані міграції:
+
+```bash
+docker compose exec db mariadb -u mc_user -pmc_secret_pass management_control \
+  -e "SELECT version, description, success FROM flyway_schema_history;"
+```
+
+Переглянути список таблиць:
+
+```bash
+docker compose exec db mariadb -u mc_user -pmc_secret_pass management_control \
+  -e "SHOW TABLES;"
+```
+
+Переглянути визначення таблиці разом з обмеженнями:
+
+```bash
+docker compose exec db mariadb -u mc_user -pmc_secret_pass management_control \
+  -e "SHOW CREATE TABLE devices\G"
+```
+
+Перевірити, що `CHECK`-обмеження реально відхиляє некоректні дані:
+
+```bash
+docker compose exec db mariadb -u mc_user -pmc_secret_pass management_control \
+  -e "INSERT INTO devices (device_id, hostname, status, enrolled_at, token_hash) VALUES ('test', 'test-pc', 'INVALID_STATUS', NOW(), 'x');"
+```
+
+Очікуваний результат — помилка `CONSTRAINT chk_devices_status failed`, а не успішний запис.
+
 ### Функціональні вимоги
 
 - Агент збирає час активного використання ноутбука;
