@@ -21,10 +21,18 @@ public class OpenApiConfig {
                         .description("Сервер системи моніторингу робочих місць: прийом телеметрії від агента "
                                 + "та керування пристроями.")
                         .license(new License().name("Proprietary")))
-                .components(new Components().addSecuritySchemes("bearerAuth",
-                        new SecurityScheme()
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("JWT")));
+                .components(new Components()
+                        .addSecuritySchemes("bearerAuth",
+                                new SecurityScheme()
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")
+                                        .description("JWT-токен адміністратора, отриманий через POST /api/v1/auth/login"))
+                        .addSecuritySchemes("deviceToken",
+                                new SecurityScheme()
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("mc_dev_...")
+                                        .description("Device-токен агента, отриманий через POST /api/v1/agent/enroll")));
     }
 }
