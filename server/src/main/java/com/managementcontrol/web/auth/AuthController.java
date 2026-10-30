@@ -9,6 +9,11 @@ import com.managementcontrol.security.AdminPrincipal;
 import com.managementcontrol.security.JwtService;
 import com.managementcontrol.web.admin.dto.LoginRequest;
 import com.managementcontrol.web.admin.dto.LoginResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,6 +30,7 @@ import java.time.Instant;
 /** Вхід адміністратора в панель керування. */
 @RestController
 @RequestMapping("/api/v1/auth")
+@Tag(name = "Auth API", description = "Автентифікація адміністраторів панелі керування")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -42,6 +48,16 @@ public class AuthController {
         this.properties = properties;
     }
 
+    @Operation(
+            summary = "Вхід адміністратора",
+            description = "Перевіряє логін і пароль, видає JWT-токен для подальших запитів до `/api/v1/admin/**`. " +
+                    "Токен передається в заголовку `Authorization: Bearer <JWT>`."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Успішний вхід; у відповіді — JWT, тип, час закінчення дії, роль"),
+            @ApiResponse(responseCode = "401", description = "Невірний логін або пароль"),
+            @ApiResponse(responseCode = "400", description = "Невалідне тіло запиту")
+    })
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -60,6 +76,17 @@ public class AuthController {
                 principal.getFullName(), principal.getRole().name());
     }
 
+    @Operation(
+            summary = "Поточний авторизований адміністратор",
+            description = "Повертає дані адміністратора, чий JWT-токен передано в запиті. " +
+                    "Поле `token` у відповіді завжди порожнє — використовується для перевірки сесії, а не для оновлення токена."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Дані поточного адміністратора"),
+            @ApiResponse(responseCode = "401", description = "Відсутній або недійсний JWT"),
+            @ApiResponse(responseCode = "404", description = "Користувача з токена не знайдено в БД (видалений обліковий запис)")
+    })
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/me")
     public LoginResponse me() {
         AdminPrincipal principal = (AdminPrincipal) SecurityContextHolder.getContext()

@@ -5,6 +5,11 @@ import com.managementcontrol.repository.EnrollmentCodeRepository;
 import com.managementcontrol.service.EnrollmentService;
 import com.managementcontrol.web.admin.dto.CreateEnrollmentCodeRequest;
 import com.managementcontrol.web.admin.dto.EnrollmentCodeDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +24,8 @@ import java.util.List;
 /** Коди реєстрації пристроїв. */
 @RestController
 @RequestMapping("/api/v1/admin/enrollment-codes")
+@Tag(name = "Admin: Enrollment", description = "Керування кодами реєстрації нових пристроїв")
+@SecurityRequirement(name = "bearerAuth")
 public class EnrollmentController {
 
     private final EnrollmentService enrollmentService;
@@ -29,6 +36,18 @@ public class EnrollmentController {
         this.repository = repository;
     }
 
+    @Operation(
+            summary = "Створити код реєстрації",
+            description = "Генерує одноразовий код, яким новий агент зможе обміняти себе на device-токен " +
+                    "через POST /api/v1/agent/enroll. За потреби код можна прив'язати до конкретного " +
+                    "`device_id` (`boundDeviceId`), щоб ним міг скористатись лише цей пристрій."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Код створено"),
+            @ApiResponse(responseCode = "400", description = "Невалідне тіло запиту"),
+            @ApiResponse(responseCode = "401", description = "Відсутній або недійсний JWT"),
+            @ApiResponse(responseCode = "403", description = "Авторизований користувач не має ролі ADMIN")
+    })
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EnrollmentCodeDto> create(@Valid @RequestBody CreateEnrollmentCodeRequest request) {
@@ -37,6 +56,15 @@ public class EnrollmentController {
         return ResponseEntity.ok(toDto(code));
     }
 
+    @Operation(
+            summary = "Список активних кодів реєстрації",
+            description = "Повертає всі ще не деактивовані коди (включно з протермінованими, якщо " +
+                    "вони формально не позначені неактивними), відсортовані від найновіших."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Список кодів"),
+            @ApiResponse(responseCode = "401", description = "Відсутній або недійсний JWT")
+    })
     @GetMapping
     public List<EnrollmentCodeDto> list() {
         return repository.findByActiveTrueOrderByCreatedAtDesc().stream().map(EnrollmentController::toDto).toList();

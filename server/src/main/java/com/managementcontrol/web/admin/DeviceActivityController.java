@@ -6,6 +6,12 @@ import com.managementcontrol.repository.BrowsingActivityRepository;
 import com.managementcontrol.repository.UsageSessionRepository;
 import com.managementcontrol.web.admin.dto.BrowsingActivityDto;
 import com.managementcontrol.web.admin.dto.UsageSessionDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +33,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/v1/admin/devices")
+@Tag(name = "Admin: Device Activity", description = "Сирі дані телеметрії пристрою за період")
+@SecurityRequirement(name = "bearerAuth")
 public class DeviceActivityController {
 
     private final UsageSessionRepository usageSessionRepository;
@@ -38,14 +46,28 @@ public class DeviceActivityController {
         this.browsingActivityRepository = browsingActivityRepository;
     }
 
+    @Operation(
+            summary = "Сесії використання програм за період",
+            description = "Повертає інтервали активності програм для пристрою. Якщо `from`/`to` не вказані — " +
+                    "за замовчуванням береться діапазон 'вчора — завтра' (UTC)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Сторінка сесій"),
+            @ApiResponse(responseCode = "401", description = "Відсутній або недійсний JWT")
+    })
     @GetMapping("/{deviceId}/usage-sessions")
     public Page<UsageSessionDto> usageSessions(
+            @Parameter(description = "Внутрішній ID пристрою")
             @PathVariable Long deviceId,
+            @Parameter(description = "Початок періоду (YYYY-MM-DD, включно). За замовчуванням — вчора")
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @Parameter(description = "Кінець періоду (YYYY-MM-DD, включно). За замовчуванням — завтра")
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @Parameter(description = "Номер сторінки, починаючи з 0")
             @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Розмір сторінки (1–500)")
             @RequestParam(defaultValue = "100") int size) {
         Instant[] range = resolveRange(from, to);
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 500));
@@ -59,14 +81,28 @@ public class DeviceActivityController {
         return new PageImpl<>(content, pageable, all.size());
     }
 
+    @Operation(
+            summary = "Активність браузера за період",
+            description = "Повертає відвідування сайтів для пристрою. Діапазон за замовчуванням той самий, " +
+                    "що й у /usage-sessions."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Сторінка записів активності браузера"),
+            @ApiResponse(responseCode = "401", description = "Відсутній або недійсний JWT")
+    })
     @GetMapping("/{deviceId}/browsing")
     public Page<BrowsingActivityDto> browsing(
+            @Parameter(description = "Внутрішній ID пристрою")
             @PathVariable Long deviceId,
+            @Parameter(description = "Початок періоду (YYYY-MM-DD, включно)")
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @Parameter(description = "Кінець періоду (YYYY-MM-DD, включно)")
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @Parameter(description = "Номер сторінки, починаючи з 0")
             @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Розмір сторінки (1–500)")
             @RequestParam(defaultValue = "100") int size) {
         Instant[] range = resolveRange(from, to);
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 500));
